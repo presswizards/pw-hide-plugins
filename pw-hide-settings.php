@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: PW — Hide Plugin Settings
- * Description: Hides configured settings pages and toolbar items from wp-admin users not in the PW super-user list. Admin-bar cache purge links are untouched.
- * Version: 1.1.0
+ * Description: Hides configured settings pages, upsells, and plugin rows from wp-admin users not in the PW super-user list. Admin-bar cache purge links are untouched.
+ * Version: 1.3.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -19,6 +19,20 @@ $GLOBALS['pw_hide_plugins_hidden_menus'] = array(
 // Admin-bar node ID prefixes stripped for non-super-users.
 $GLOBALS['pw_hide_plugins_hidden_bar_nodes'] = array(
 	'novamira-',
+);
+
+// Plugin rows hidden from plugins.php for non-super-users
+// (keys are plugin basenames, e.g. 'novamira/novamira.php').
+$GLOBALS['pw_hide_plugins_hidden_plugins'] = array(
+	'novamira/novamira.php',
+);
+
+// Upsell admin notices squashed for non-super-users
+// (hook => callback; removed when the callback exists).
+$GLOBALS['pw_hide_plugins_squashed_notices'] = array(
+	'admin_notices' => array(
+		'novamira_render_pro_welcome_notice', // "Novamira Pro is here."
+	),
 );
 
 // Admin screen-ID substrings blocked for non-super-users (direct URLs).
@@ -50,7 +64,26 @@ add_action( 'admin_menu', function () {
 		}
 		remove_menu_page( $parent );
 	}
+	foreach ( (array) $GLOBALS['pw_hide_plugins_squashed_notices'] as $hook => $callbacks ) {
+		foreach ( (array) $callbacks as $callback ) {
+			if ( is_string( $callback ) && function_exists( $callback ) ) {
+				remove_action( $hook, $callback );
+			}
+		}
+	}
 }, 999 );
+
+// Plugin rows vanish from plugins.php for non-super users.
+// (Update-count badges may still reflect the hidden plugin; out of scope.)
+add_filter( 'all_plugins', function ( $plugins ) {
+	if ( pw_hide_plugins_is_super_user() || ! is_array( $plugins ) ) {
+		return $plugins;
+	}
+	foreach ( (array) $GLOBALS['pw_hide_plugins_hidden_plugins'] as $basename ) {
+		unset( $plugins[ (string) $basename ] );
+	}
+	return $plugins;
+} );
 
 // Toolbar stripping runs right before render, after every plugin has
 // added its nodes (MU plugins load before regular plugins, so an

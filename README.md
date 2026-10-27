@@ -5,10 +5,10 @@ and Plesk servers.
 
 ## Summary
 
-`pw-hide-settings.php` hides the Super Page Cache (SPC) and Novamira
-settings pages (sidebar menus + direct URLs) and Novamira toolbar items
-from wp-admin users not in the PW super-user list, while leaving the
-admin-bar "purge cache" links fully working.
+`pw-hide-settings.php` hides configured settings pages (sidebar menus +
+direct URLs), upsell admin notices, and whole plugin rows, plus Novamira
+toolbar items, from wp-admin users not in the PW super-user list, while
+leaving the admin-bar "purge cache" links fully working.
 
 Unlike the Watchdog-fleet sibling (`wdshelp-hide-plugins`, gated on the
 `WATCHDOG_HOSTING_SUPER_USERS` constant), this variant carries its own
@@ -23,6 +23,12 @@ username list — no WP constant required on the target site.
   all subpages (Dashboard, Settings, Import/Export, License), plus the
   Novamira menu tree (`novamira-connect` and every subpage) and all
   `novamira-*` toolbar nodes.
+- Squashes upsell admin notices for non-super users: currently Novamira's
+  `novamira_render_pro_welcome_notice` ("Novamira Pro is here."). SPC's
+  "Connect your AI agent" upsell lives inside SPC's own pages, which
+  non-super users can no longer open, so it needs no separate handling.
+- Hides whole plugin rows from plugins.php for non-super users (currently
+  `novamira/novamira.php`).
 - Fails open: if the super-user list is empty, the plugin changes nothing.
 
 ## Tech specs
