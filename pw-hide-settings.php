@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: PW — Hide Plugin Settings
- * Description: Hides configured settings pages, upsells, and plugin rows from wp-admin users not in the PW super-user list. Admin-bar cache purge links are untouched.
- * Version: 1.3.0
+ * Description: Hides configured settings pages, upsell notices, plugin rows, and toolbar items from wp-admin users not in the PW super-user list. Admin-bar cache purge links are untouched.
+ * Version: 1.4.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -32,6 +32,9 @@ $GLOBALS['pw_hide_plugins_hidden_plugins'] = array(
 $GLOBALS['pw_hide_plugins_squashed_notices'] = array(
 	'admin_notices' => array(
 		'novamira_render_pro_welcome_notice', // "Novamira Pro is here."
+		// Themeisle SDK "AI agent" notice is an object-method hook
+		// (Ai_Connect::render_notice) re-added late by the SDK itself,
+		// so it is stripped by class scan below, not listed here.
 	),
 );
 
@@ -84,6 +87,42 @@ add_filter( 'all_plugins', function ( $plugins ) {
 	}
 	return $plugins;
 } );
+
+// Themeisle SDK "Connect your AI agent" row-meta link + admin notice,
+// stripped for non-super users. The notice re-registers itself late
+// (in_admin_header), so the strip runs on admin_notices at priority 9,
+// before its default-10 slot but after any re-registration.
+add_filter( 'plugin_row_meta', function ( $links, $file ) {
+	if ( pw_hide_plugins_is_super_user() || ! is_array( $links ) ) {
+		return $links;
+	}
+	foreach ( $links as $i => $html ) {
+		if ( stripos( (string) $html, 'ti-ai-connect-open' ) !== false ) {
+			unset( $links[ $i ] );
+		}
+	}
+	return $links;
+}, 999, 2 );
+
+add_action( 'admin_notices', function () {
+	if ( pw_hide_plugins_is_super_user() ) {
+		return;
+	}
+	global $wp_filter;
+	if ( empty( $wp_filter['admin_notices'] ) ) {
+		return;
+	}
+	foreach ( $wp_filter['admin_notices']->callbacks as $prio => $cbs ) {
+		foreach ( $cbs as $id => $cb ) {
+			$fn = isset( $cb['function'] ) ? $cb['function'] : null;
+			if ( is_array( $fn ) && is_object( $fn[0] )
+				&& stripos( get_class( $fn[0] ), 'ai_connect' ) !== false
+				&& isset( $fn[1] ) && $fn[1] === 'render_notice' ) {
+				remove_action( 'admin_notices', $fn, (int) $prio );
+			}
+		}
+	}
+}, 9 );
 
 // Toolbar stripping runs right before render, after every plugin has
 // added its nodes (MU plugins load before regular plugins, so an

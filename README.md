@@ -23,12 +23,15 @@ username list — no WP constant required on the target site.
   all subpages (Dashboard, Settings, Import/Export, License), plus the
   Novamira menu tree (`novamira-connect` and every subpage) and all
   `novamira-*` toolbar nodes.
-- Squashes upsell admin notices for non-super users: currently Novamira's
-  `novamira_render_pro_welcome_notice` ("Novamira Pro is here."). SPC's
-  "Connect your AI agent" upsell lives inside SPC's own pages, which
-  non-super users can no longer open, so it needs no separate handling.
+- Squashes upsell admin notices for non-super users: Novamira's
+  `novamira_render_pro_welcome_notice` ("Novamira Pro is here."), and the
+  Themeisle SDK "Connect your AI agent" notice (object-method hook stripped
+  by class scan on `admin_notices` priority 9, since the SDK re-registers
+  itself late). SPC's in-page AI upsell needs no handling — it only renders
+  inside SPC pages, which are blocked.
 - Hides whole plugin rows from plugins.php for non-super users (currently
-  `novamira/novamira.php`).
+  `novamira/novamira.php`), and strips the SDK "AI agent" row-meta link
+  (`ti-ai-connect-open`) from every plugin's row.
 - Fails open: if the super-user list is empty, the plugin changes nothing.
 
 ## Tech specs
